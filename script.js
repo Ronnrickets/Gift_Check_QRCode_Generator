@@ -123,10 +123,75 @@ function generateQRCodes(dataList) {
     });
 }
 
+// const downloadPdfBtn = document.getElementById('download-pdf-btn');
+
+// // --- EVENT LISTENER FOR PDF DOWNLOAD ---
+// downloadPdfBtn.addEventListener('click', () => {
+//     // Check if any QR codes have been generated
+//     if (dataCountSpan.textContent === '0' || qrCodesOutput.children.length === 0) {
+//         alert("Please import data and generate QR codes first.");
+//         return;
+//     }
+
+//     downloadPdfBtn.textContent = "Generating PDF... Please Wait...";
+//     downloadPdfBtn.disabled = true;
+
+//     // Use html2canvas to render the entire QR code output area as a single image
+//     html2canvas(qrCodesOutput, {
+//         scale: 2, // Increase scale for higher resolution in the PDF
+//         allowTaint: true,
+//         useCORS: true,
+//     }).then(canvas => {
+//         // Get the image data
+//         const imgData = canvas.toDataURL('image/png');
+        
+//         // Initialize jsPDF
+//         // 'p' = portrait, 'mm' = units (millimeters), 'a4' = page size
+//         const { jsPDF } = window.jspdf;
+//         const pdf = new jsPDF('p', 'mm', 'a4');
+
+//         const pdfWidth = pdf.internal.pageSize.getWidth();
+//         const pdfHeight = pdf.internal.pageSize.getHeight();
+        
+//         // Calculate image dimensions for a good fit on the PDF page
+//         const imgProps = pdf.getImageProperties(imgData);
+//         const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
+        
+//         // Check if the content is too tall for one page
+//         let heightLeft = imgHeight;
+//         let position = 0;
+        
+//         // Add the image to the PDF
+//         pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+//         heightLeft -= pdfHeight;
+
+//         // If content is longer than one page, add new pages
+//         while (heightLeft >= 0) {
+//             position = heightLeft - imgHeight;
+//             pdf.addPage();
+//             pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
+//             heightLeft -= pdfHeight;
+//         }
+
+//         // Save the PDF file
+//         const today = new Date();
+//         const year = today.getFullYear();
+//         const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+//         const day = today.getDate().toString().padStart(2, '0');
+//         const dateToday = `${year}${month}${day}`
+//         pdf.save('generatedQrCode_' + dateToday + '.pdf');
+
+//         // Reset button state
+//         downloadPdfBtn.textContent = "⬇️ Download All QR Codes as PDF";
+//         downloadPdfBtn.disabled = false;
+//     });
+// });
+
 const downloadPdfBtn = document.getElementById('download-pdf-btn');
+const ITEMS_PER_PAGE = 50; // 10 rows * 5 columns = 50 items
 
 // --- EVENT LISTENER FOR PDF DOWNLOAD ---
-downloadPdfBtn.addEventListener('click', () => {
+downloadPdfBtn.addEventListener('click', async () => {
     // Check if any QR codes have been generated
     if (dataCountSpan.textContent === '0' || qrCodesOutput.children.length === 0) {
         alert("Please import data and generate QR codes first.");
@@ -136,55 +201,73 @@ downloadPdfBtn.addEventListener('click', () => {
     downloadPdfBtn.textContent = "Generating PDF... Please Wait...";
     downloadPdfBtn.disabled = true;
 
-    // Use html2canvas to render the entire QR code output area as a single image
-    html2canvas(qrCodesOutput, {
-        scale: 2, // Increase scale for higher resolution in the PDF
-        allowTaint: true,
-        useCORS: true,
-    }).then(canvas => {
-        // Get the image data
-        const imgData = canvas.toDataURL('image/png');
-        
-        // Initialize jsPDF
-        // 'p' = portrait, 'mm' = units (millimeters), 'a4' = page size
-        const { jsPDF } = window.jspdf;
-        const pdf = new jsPDF('p', 'mm', 'a4');
+    // --- 1. Split QR Code Items into Pages ---
+    const qrCodeItems = Array.from(qrCodesOutput.children);
+    const numPages = Math.ceil(qrCodeItems.length / ITEMS_PER_PAGE);
+    
+    // Initialize jsPDF
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const margin = 5;
 
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const pdfHeight = pdf.internal.pageSize.getHeight();
-        
-        // Calculate image dimensions for a good fit on the PDF page
+    // Create a temporary element to hold one page of QR codes at a time
+    const tempContainer = document.createElement('div');
+    // Copy the original grid styling to the temporary container
+    tempContainer.id = 'temp-qr-codes-page'; 
+    tempContainer.style.width = qrCodesOutput.offsetWidth + 'px';
+    tempContainer.style.margin = '0 auto';
+    // Append to body but make it invisible so the user doesn't see page changes
+    tempContainer.style.position = 'absolute';
+    tempContainer.style.top = '-9999px';
+    document.body.appendChild(tempContainer);
+
+    // --- 2. Loop through pages and capture each one ---
+    for (let i = 0; i < numPages; i++) {
+        const start = i * ITEMS_PER_PAGE;
+        const end = start + ITEMS_PER_PAGE;
+        const pageItems = qrCodeItems.slice(start, end);
+
+        // Clear and populate the temp container with the current page's items
+        tempContainer.innerHTML = '';
+        pageItems.forEach(item => tempContainer.appendChild(item.cloneNode(true)));
+        const progress = Math.round(((i + 1) / numPages) * 100);
+        downloadPdfBtn.textContent = `Generating PDF... ${progress}% Complete (Page ${i + 1} of ${numPages})`;
+        // Wait for html2canvas to render the single page container
+        const canvas = await html2canvas(tempContainer, {
+            scale: 1.5, // Use scale 2 for high resolution
+            allowTaint: true,
+            useCORS: true,
+        });
+
+        const imgData = canvas.toDataURL('image/jpeg', 0.9);
         const imgProps = pdf.getImageProperties(imgData);
+        
+        // Calculate the height required for the image to fit the width
         const imgHeight = (imgProps.height * pdfWidth) / imgProps.width;
-        
-        // Check if the content is too tall for one page
-        let heightLeft = imgHeight;
-        let position = 0;
-        
-        // Add the image to the PDF
-        pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-        heightLeft -= pdfHeight;
 
-        // If content is longer than one page, add new pages
-        while (heightLeft >= 0) {
-            position = heightLeft - imgHeight;
+        // Add a new page only if it's not the very first page
+        if (i > 0) {
             pdf.addPage();
-            pdf.addImage(imgData, 'PNG', 0, position, pdfWidth, imgHeight);
-            heightLeft -= pdfHeight;
         }
 
-        // Save the PDF file
-        const today = new Date();
-        const year = today.getFullYear();
-        const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
-        const day = today.getDate().toString().padStart(2, '0');
-        const dateToday = `${year}${month}${day}`
-        pdf.save('generatedQrCode_' + dateToday + '.pdf');
+        // Add the image to the PDF, leaving a small margin
+        const contentWidth = pdfWidth - (margin * 2);
+        const contentHeight = (imgProps.height * contentWidth) / imgProps.width;
 
-        // Reset button state
-        downloadPdfBtn.textContent = "⬇️ Download All QR Codes as PDF";
-        downloadPdfBtn.disabled = false;
-    });
+        pdf.addImage(imgData, 'JPEG', margin, margin, contentWidth, contentHeight);
+    }
+    
+    // --- 3. Finalize and Clean Up ---
+    pdf.save('generatedQrCode_' + new Date().toISOString().slice(0, 10).replace(/-/g, '') + '.pdf');
+
+    // Remove the temporary element from the DOM
+    document.body.removeChild(tempContainer);
+
+    // Reset button state
+    downloadPdfBtn.textContent = "⬇️ Download All QR Codes as PDF";
+    downloadPdfBtn.disabled = false;
 });
 
 
@@ -194,5 +277,4 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Initial call to clear screen and show count as 0 on page load
-
 generateQRCodes([]);
