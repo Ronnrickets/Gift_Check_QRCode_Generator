@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIFT CHECK QR CODE GENERATOR</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sixtyfour&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="wrapper">
+        <h1 class="titleHeader">GIFT CHECK QR CODE GENERATOR</h1>
+        
+        <div class="import-section">
+            <h2>1. Import Your Data</h2>
+            <p>Upload a **.txt** or **.csv** file. Each item should be on a new line.</p>
+            <input type="file" id="file-input" accept=".txt, .csv">
+            <p class="status-message" id="import-status">Awaiting file upload...</p>
+        </div>
+
+        <hr>
+
+        <h2>2. Generated QR Codes (<span id="data-count">0</span> items)</h2>
+
+        <div id="qr-codes-output"></div>
+
+        <h2>3. Download Options</h2>
+        <button id="download-pdf-btn">⬇️ Download All QR Codes as PDF</button>
+        <hr>
+    </div >
+    <script src="script.js"></script>
+</body>
+</html >
