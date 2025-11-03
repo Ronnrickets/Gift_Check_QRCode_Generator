@@ -174,7 +174,12 @@ downloadPdfBtn.addEventListener('click', () => {
         }
 
         // Save the PDF file
-        pdf.save('generatedQrCode.pdf');
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = (today.getMonth() + 1).toString().padStart(2, '0'); // Months are 0-indexed
+        const day = today.getDate().toString().padStart(2, '0');
+        const dateToday = `${year}${month}${day}`
+        pdf.save('generatedQrCode_' + dateToday + '.pdf');
 
         // Reset button state
         downloadPdfBtn.textContent = "⬇️ Download All QR Codes as PDF";
@@ -189,4 +194,5 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Initial call to clear screen and show count as 0 on page load
+
 generateQRCodes([]);
